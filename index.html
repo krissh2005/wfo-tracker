@@ -323,7 +323,8 @@ function calculate() {
   const required = Math.min(12, Math.round(effective * 0.6));
   const remaining = Math.max(required - wfo, 0);
 
-  document.getElementById("total").innerText = totalWorkingDays;
+  const adjustedWorkingDays = Math.max(totalWorkingDays - holidays, 0);
+  document.getElementById("total").innerText = adjustedWorkingDays;
   document.getElementById("holidays").innerText = holidays;
   document.getElementById("leaves").innerText = leaves;
   document.getElementById("required").innerText = required;
