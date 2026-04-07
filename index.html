@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- PWA -->
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+
+<title>WFO Tracker</title>
+
+<style>
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #f5f7fb;
+  padding: 10px;
+  text-align: center;
+}
+
+.card {
+  background: white;
+  max-width: 420px;
+  margin: auto;
+  padding: 15px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+button {
+  background: #4f46e5;
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.reset {
+  margin-top: 10px;
+  background: #ef4444;
+}
+
+/* GRID */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 15px;
+}
+
+.label {
+  font-weight: bold;
+  color: #666;
+}
+
+.day {
+  padding: 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* COLORS */
+.wfh { background: #3b82f6; color: white; }
+.wfo { background: #ef4444; color: white; }
+.leave { background: #facc15; color: black; }
+.holiday { background: #22c55e; color: white; }
+.weekend { background: #e5e7eb; color: #9ca3af; }
+
+/* LEGEND */
+.legend {
+  margin-top: 10px;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 5px;
+}
+.box {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+/* PROGRESS */
+.progress-container {
+  margin-top: 15px;
+}
+.progress-bar {
+  height: 12px;
+  background: #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: #ef4444;
+  width: 0%;
+  transition: 0.3s;
+}
+
+/* MESSAGE */
+.message {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.modal button {
+  margin: 5px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: black;
+  font-weight: 600;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+  <div class="header">
+    <button onclick="changeMonth(-1)">◀</button>
+    <h3 id="month"></h3>
+    <button onclick="changeMonth(1)">▶</button>
+  </div>
+
+<button class="reset" onclick="resetMonth()">Reset Month</button>
+
+  <div id="calendar"></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="box wfh"></div> WFH</div>
+    <div class="legend-item"><div class="box wfo"></div> WFO</div>
+    <div class="legend-item"><div class="box leave"></div> Leave</div>
+    <div class="legend-item"><div class="box holiday"></div> Holiday</div>
+    <div class="legend-item"><div class="box weekend"></div> Weekend</div>
+  </div>
+
+  <div class="progress-container">
+    <p><b>Progress:</b> <span id="progressText"></span></p>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="message" id="message"></div>
+
+  <div>
+    <p>Total Working Days: <span id="total"></span></p>
+    <p>Holidays: <span id="holidays"></span></p>
+    <p>Leaves: <span id="leaves"></span></p>
+    <p>Required WFO (max 12): <span id="required"></span></p>
+    <p>Done WFO: <span id="done"></span></p>
+    <p>Remaining WFO: <span id="remaining"></span></p>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <p>Select Status</p>
+    <button class="wfh" onclick="setStatus('wfh')">WFH</button>
+    <button class="wfo" onclick="setStatus('wfo')">WFO</button>
+    <button class="leave" onclick="setStatus('leave')">Leave</button>
+    <button class="holiday" onclick="setStatus('holiday')">Holiday</button>
+  </div>
+</div>
+
+<script>
+// PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+
+let currentDate = new Date();
+let days = [];
+let selectedDay = null;
+
+function getKey(year, month) {
+  return `calendar-${year}-${month}`;
+}
+
+function saveData(year, month) {
+  localStorage.setItem(getKey(year, month), JSON.stringify(days));
+}
+
+function loadData(year, month) {
+  const saved = localStorage.getItem(getKey(year, month));
+  return saved ? JSON.parse(saved) : [];
+}
+
+function changeMonth(offset) {
+  currentDate.setMonth(currentDate.getMonth() + offset);
+  generateCalendar();
+}
+
+function resetMonth() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  localStorage.removeItem(getKey(year, month));
+  generateCalendar();
+}
+
+function generateCalendar() {
+  const calendar = document.getElementById("calendar");
+  calendar.innerHTML = "";
+  days = [];
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  document.getElementById("month").innerText =
+    currentDate.toLocaleString("default", { month: "long" }) + " " + year;
+
+  const saved = loadData(year, month);
+  const grid = document.createElement("div");
+  grid.className = "grid";
+
+  ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d => {
+    const label = document.createElement("div");
+    label.className = "label";
+    label.innerText = d;
+    grid.appendChild(label);
+  });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(document.createElement("div"));
+  }
+
+  const lastDay = new Date(year, month + 1, 0).getDate();
+
+  for (let d = 1; d <= lastDay; d++) {
+    const date = new Date(year, month, d);
+    const dayOfWeek = date.getDay();
+
+    let existing = saved.find(x => new Date(x.date).getDate() === d);
+
+    const obj = existing || {
+      date: date.toISOString(),
+      status: "wfh"
+    };
+
+    days.push(obj);
+
+    const div = document.createElement("div");
+    div.innerText = d;
+    div.className = "day " + obj.status;
+
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      div.classList.add("weekend");
+    }
+
+    div.onclick = () => {
+      selectedDay = obj;
+      document.getElementById("modal").style.display = "flex";
+    };
+
+    grid.appendChild(div);
+  }
+
+  calendar.appendChild(grid);
+  calculate();
+}
+
+function setStatus(status) {
+  selectedDay.status = status;
+  document.getElementById("modal").style.display = "none";
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  saveData(year, month);
+
+  generateCalendar();
+}
+
+function calculate() {
+  const totalWorkingDays = days.filter(d => {
+    const day = new Date(d.date).getDay();
+    return day !== 0 && day !== 6;
+  }).length;
+
+  const holidays = days.filter(d => d.status === "holiday").length;
+  const leaves = days.filter(d => d.status === "leave").length;
+  const wfo = days.filter(d => d.status === "wfo").length;
+
+  const effective = Math.max(totalWorkingDays - holidays - leaves, 0);
+
+  const required = Math.min(12, Math.round(effective * 0.6));
+  const remaining = Math.max(required - wfo, 0);
+
+  document.getElementById("total").innerText = totalWorkingDays;
+  document.getElementById("holidays").innerText = holidays;
+  document.getElementById("leaves").innerText = leaves;
+  document.getElementById("required").innerText = required;
+  document.getElementById("done").innerText = wfo;
+  document.getElementById("remaining").innerText = remaining;
+
+  // progress
+  let percent = required === 0 ? 0 : (wfo / required) * 100;
+  document.getElementById("progressFill").style.width = percent + "%";
+  document.getElementById("progressText").innerText = wfo + " / " + required;
+
+  // message
+  let msg = "";
+  if (required === 0) {
+    msg = "No WFO required this month";
+  } else if (remaining === 0) {
+    msg = "Target achieved 🎉";
+  } else if (remaining === 1) {
+    msg = "Only 1 more day to go 🔥";
+  } else {
+    msg = "You need " + remaining + " more WFO days";
+  }
+
+  document.getElementById("message").innerText = msg;
+}
+
+generateCalendar();
+</script>
+
+</body>
+</html>
