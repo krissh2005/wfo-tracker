@@ -68,6 +68,12 @@
     box-shadow: 0 20px 45px -18px rgba(31, 36, 48, 0.28);
     overflow: hidden;
     border: 1px solid var(--border);
+    animation: cardEnter 0.6s cubic-bezier(.22,.85,.3,1) both;
+  }
+
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(16px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
   }
 
   /* ---------- HEADER / BADGE STRIP ---------- */
@@ -157,42 +163,9 @@
 
   .toolbar {
     display: flex;
-    align-items: center;
     justify-content: flex-end;
     margin-bottom: 10px;
-    gap: 8px;
-    min-height: 30px;
   }
-
-  .multi-toolbar {
-    display: none;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 8px;
-  }
-  .multi-toolbar.active { display: flex; }
-
-  #selectionCount {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--ink-soft);
-  }
-
-  .multi-btn {
-    border: none;
-    border-radius: 999px;
-    padding: 6px 13px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    transition: filter 0.15s ease, transform 0.12s ease;
-  }
-  .multi-btn:active { transform: scale(0.95); }
-  .multi-btn.cancel-btn { background: var(--weekend-bg); color: var(--muted); }
-  .multi-btn.apply-btn { background: var(--ink); color: #fff; }
-  .multi-btn.apply-btn:hover, .multi-btn.cancel-btn:hover { filter: brightness(1.08); }
 
   .reset {
     background: none;
@@ -255,27 +228,6 @@
   }
   .day.stamp { animation: stampIn 0.38s cubic-bezier(.25,.8,.35,1.1); }
 
-  .day {
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    touch-action: manipulation;
-    position: relative;
-  }
-  .day.holding { transform: scale(0.88); }
-  .day.selected {
-    outline: 2.5px solid var(--ink);
-    outline-offset: -2.5px;
-  }
-  .day.selected::after {
-    content: "✓";
-    position: absolute;
-    top: 1px;
-    right: 3px;
-    font-size: 8px;
-    line-height: 1;
-  }
-
   /* ---------- LEGEND ---------- */
   .legend {
     display: flex;
@@ -331,6 +283,36 @@
   }
   .progress-fill.done {
     background: linear-gradient(90deg, #34d399, var(--holiday));
+  }
+  .progress-fill.pulse {
+    animation: glowPulse 0.9s ease-out 1;
+  }
+  @keyframes glowPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.55); }
+    70%  { box-shadow: 0 0 0 10px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+  }
+
+  .confetti-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+  }
+  .confetti-piece {
+    position: absolute;
+    top: -10px;
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+    animation-name: confettiFall;
+    animation-timing-function: ease-in;
+    animation-fill-mode: forwards;
+  }
+  @keyframes confettiFall {
+    0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+    100% { transform: translate(var(--x), 105vh) rotate(var(--r)); opacity: 0; }
   }
 
   .message {
@@ -428,6 +410,19 @@
     font-size: 13px;
     cursor: pointer;
     transition: transform 0.12s ease, filter 0.12s ease;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  .modal.open .status-btn {
+    animation: btnIn 0.32s ease forwards;
+  }
+  .modal.open .status-btn:nth-child(1) { animation-delay: 0.03s; }
+  .modal.open .status-btn:nth-child(2) { animation-delay: 0.07s; }
+  .modal.open .status-btn:nth-child(3) { animation-delay: 0.11s; }
+  .modal.open .status-btn:nth-child(4) { animation-delay: 0.15s; }
+
+  @keyframes btnIn {
+    to { opacity: 1; transform: none; }
   }
   .status-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
   .status-btn:active { transform: scale(0.96); }
@@ -470,14 +465,7 @@
   <div class="body">
 
     <div class="toolbar">
-      <div class="multi-toolbar" id="multiToolbar">
-        <span id="selectionCount">0 selected</span>
-        <div style="display:flex; gap:8px;">
-          <button class="multi-btn cancel-btn" onclick="cancelSelection()">Cancel</button>
-          <button class="multi-btn apply-btn" onclick="openMultiModal()">Apply status</button>
-        </div>
-      </div>
-      <button class="reset" id="resetBtn" onclick="resetMonth()">Reset month</button>
+      <button class="reset" onclick="resetMonth()">Reset month</button>
     </div>
 
     <div id="calendar"></div>
@@ -535,7 +523,7 @@
 <div class="modal" id="modal" onclick="if(event.target===this) closeModal()">
   <div class="modal-content">
     <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
-    <p id="modalTitle">Select status</p>
+    <p>Select status</p>
     <div class="status-grid">
       <button class="status-btn wfh" onclick="setStatus('wfh')">WFH</button>
       <button class="status-btn wfo" onclick="setStatus('wfo')">WFO</button>
@@ -555,14 +543,8 @@ let currentDate = new Date();
 let days = [];
 let selectedDay = null;
 let lastChangedDateStr = null;
-
-// ---------- MULTI-SELECT (long-press) STATE ----------
-let multiSelectMode = false;
-let selectedDates = new Set();   // ISO date strings of selected days
-let lastChangedDates = new Set(); // for stamp animation after bulk apply
-let longPressTimer = null;
-let longPressTriggered = false;
-const LONG_PRESS_MS = 450;
+let triggeringUserAction = false;
+let lastRemaining = null;
 
 function getKey(year, month) {
   return `calendar-${year}-${month}`;
@@ -578,8 +560,6 @@ function loadData(year, month) {
 }
 
 function changeMonth(offset) {
-  selectedDates.clear();
-  multiSelectMode = false;
   const calendar = document.getElementById("calendar");
   calendar.classList.add("fading");
   setTimeout(() => {
@@ -590,8 +570,6 @@ function changeMonth(offset) {
 }
 
 function resetMonth() {
-  selectedDates.clear();
-  multiSelectMode = false;
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   localStorage.removeItem(getKey(year, month));
@@ -649,14 +627,10 @@ function generateCalendar() {
     if (isWeekend) {
       div.classList.add("weekend");
     } else {
-      if (selectedDates.has(obj.date)) {
-        div.classList.add("selected");
-      }
-      div.addEventListener("pointerdown", (e) => onDayPointerDown(e, obj, div));
-      div.addEventListener("pointerup", (e) => onDayPointerUp(e, obj, div));
-      div.addEventListener("pointerleave", () => onDayPointerCancel(div));
-      div.addEventListener("pointercancel", () => onDayPointerCancel(div));
-      div.addEventListener("contextmenu", (e) => e.preventDefault());
+      div.onclick = () => {
+        selectedDay = obj;
+        document.getElementById("modal").classList.add("open");
+      };
     }
 
     if (lastChangedDateStr && date.toDateString() === lastChangedDateStr) {
@@ -664,18 +638,12 @@ function generateCalendar() {
       div.addEventListener("animationend", () => div.classList.remove("stamp"), { once: true });
       lastChangedDateStr = null;
     }
-    if (lastChangedDates.has(date.toDateString())) {
-      div.classList.add("stamp");
-      div.addEventListener("animationend", () => div.classList.remove("stamp"), { once: true });
-    }
 
     grid.appendChild(div);
   }
 
   calendar.appendChild(grid);
-  lastChangedDates.clear();
   calculate();
-  updateSelectionUI();
 }
 
 function closeModal() {
@@ -684,23 +652,10 @@ function closeModal() {
 }
 
 function setStatus(status) {
-  if (multiSelectMode && selectedDates.size > 0) {
-    // Bulk-apply status to every selected (non-weekend) day
-    days.forEach(d => {
-      if (selectedDates.has(d.date)) {
-        d.status = status;
-        lastChangedDates.add(new Date(d.date).toDateString());
-      }
-    });
-    selectedDates.clear();
-    multiSelectMode = false;
-  } else if (selectedDay) {
-    selectedDay.status = status;
-    lastChangedDateStr = new Date(selectedDay.date).toDateString();
-  }
-
+  selectedDay.status = status;
+  lastChangedDateStr = new Date(selectedDay.date).toDateString();
+  triggeringUserAction = true;
   document.getElementById("modal").classList.remove("open");
-  document.getElementById("modalTitle").innerText = "Select status";
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -709,91 +664,46 @@ function setStatus(status) {
   generateCalendar();
 }
 
-// ---------- LONG-PRESS + MULTI-SELECT ----------
-
-function onDayPointerDown(e, obj, div) {
-  longPressTriggered = false;
-  clearTimeout(longPressTimer);
-  div.classList.add("holding");
-
-  longPressTimer = setTimeout(() => {
-    longPressTriggered = true;
-    div.classList.remove("holding");
-    if (navigator.vibrate) navigator.vibrate(25);
-    if (!multiSelectMode) multiSelectMode = true;
-    toggleSelection(obj, div);
-  }, LONG_PRESS_MS);
-}
-
-function onDayPointerUp(e, obj, div) {
-  clearTimeout(longPressTimer);
-  div.classList.remove("holding");
-
-  if (longPressTriggered) {
-    // The long-press already toggled this day's selection; a plain
-    // tap that follows a long-press shouldn't also open the modal.
-    longPressTriggered = false;
+function animateNumber(el, to) {
+  const from = parseInt(el.dataset.val, 10) || 0;
+  if (from === to) {
+    el.innerText = to;
+    el.dataset.val = to;
     return;
   }
-
-  if (multiSelectMode) {
-    // Already in multi-select mode: a normal tap toggles this day too.
-    toggleSelection(obj, div);
-  } else {
-    // Normal single-day tap: open the status modal for just this day.
-    selectedDay = obj;
-    document.getElementById("modalTitle").innerText = "Select status";
-    document.getElementById("modal").classList.add("open");
+  const duration = 400;
+  const start = performance.now();
+  function tick(now) {
+    const p = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + (to - from) * eased);
+    el.innerText = val;
+    if (p < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      el.dataset.val = to;
+    }
   }
+  requestAnimationFrame(tick);
 }
 
-function onDayPointerCancel(div) {
-  clearTimeout(longPressTimer);
-  div.classList.remove("holding");
-}
-
-function toggleSelection(obj, div) {
-  if (selectedDates.has(obj.date)) {
-    selectedDates.delete(obj.date);
-    div.classList.remove("selected");
-  } else {
-    selectedDates.add(obj.date);
-    div.classList.add("selected");
+function spawnConfetti() {
+  const colors = ["#2563eb", "#dc2626", "#eab308", "#059669", "#0ea5e9"];
+  const layer = document.createElement("div");
+  layer.className = "confetti-layer";
+  for (let i = 0; i < 24; i++) {
+    const piece = document.createElement("span");
+    piece.className = "confetti-piece";
+    piece.style.left = Math.random() * 100 + "%";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = (Math.random() * 0.15) + "s";
+    piece.style.animationDuration = (0.9 + Math.random() * 0.6) + "s";
+    piece.style.setProperty("--x", (Math.random() * 80 - 40) + "px");
+    piece.style.setProperty("--r", (Math.random() * 360) + "deg");
+    layer.appendChild(piece);
   }
-
-  if (selectedDates.size === 0) {
-    multiSelectMode = false;
-  }
-  updateSelectionUI();
-}
-
-function updateSelectionUI() {
-  const toolbar = document.getElementById("multiToolbar");
-  const resetBtn = document.getElementById("resetBtn");
-  const count = document.getElementById("selectionCount");
-  if (!toolbar || !resetBtn || !count) return;
-
-  if (multiSelectMode && selectedDates.size > 0) {
-    toolbar.classList.add("active");
-    resetBtn.style.display = "none";
-    count.innerText = selectedDates.size + " selected";
-  } else {
-    toolbar.classList.remove("active");
-    resetBtn.style.display = "";
-  }
-}
-
-function cancelSelection() {
-  selectedDates.clear();
-  multiSelectMode = false;
-  generateCalendar();
-}
-
-function openMultiModal() {
-  if (selectedDates.size === 0) return;
-  document.getElementById("modalTitle").innerText =
-    "Apply status to " + selectedDates.size + " day" + (selectedDates.size > 1 ? "s" : "");
-  document.getElementById("modal").classList.add("open");
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 1700);
 }
 
 function calculate() {
@@ -812,18 +722,27 @@ function calculate() {
   const remaining = Math.max(required - wfo, 0);
 
   const adjustedWorkingDays = Math.max(totalWorkingDays - holidays, 0);
-  document.getElementById("total").innerText = adjustedWorkingDays;
-  document.getElementById("holidays").innerText = holidays;
-  document.getElementById("leaves").innerText = leaves;
-  document.getElementById("required").innerText = required;
-  document.getElementById("done").innerText = wfo;
-  document.getElementById("remaining").innerText = remaining;
+  animateNumber(document.getElementById("total"), adjustedWorkingDays);
+  animateNumber(document.getElementById("holidays"), holidays);
+  animateNumber(document.getElementById("leaves"), leaves);
+  animateNumber(document.getElementById("required"), required);
+  animateNumber(document.getElementById("done"), wfo);
+  animateNumber(document.getElementById("remaining"), remaining);
 
   // progress
   let percent = required === 0 ? 0 : Math.min((wfo / required) * 100, 100);
   const fill = document.getElementById("progressFill");
   fill.style.width = percent + "%";
+  const justAchieved =
+    triggeringUserAction && required > 0 && remaining === 0 && lastRemaining !== 0;
   fill.classList.toggle("done", remaining === 0 && required > 0);
+  if (justAchieved) {
+    fill.classList.add("pulse");
+    setTimeout(() => fill.classList.remove("pulse"), 1000);
+    spawnConfetti();
+  }
+  triggeringUserAction = false;
+  lastRemaining = remaining;
   document.getElementById("progressText").innerText = wfo + " / " + required;
 
   // message
@@ -863,7 +782,7 @@ async function loadVisitorCount() {
     );
     if (!res.ok) throw new Error("request failed");
     const data = await res.json(); // { visit: number, visitor: number }
-    el.innerText = data.visitor.toLocaleString();
+    animateNumber(el, data.visitor);
   } catch (e) {
     el.innerText = "—";
   }
