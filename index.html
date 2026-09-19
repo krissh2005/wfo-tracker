@@ -533,7 +533,7 @@ function generateCalendar() {
   const lastDay = new Date(year, month + 1, 0).getDate();
 
   for (let d = 1; d <= lastDay; d++) {
-    const date = new Date(year, month, d);
+    const date = new Date(year, month, d); 
     const dayOfWeek = date.getDay();
 
     let existing = saved.find(x => new Date(x.date).getDate() === d);
