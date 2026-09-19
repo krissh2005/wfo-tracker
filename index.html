@@ -29,12 +29,12 @@
     --wfh: #2563eb;
     --wfh-soft: #dbeafe;
     --wfh-text: #1d4ed8;
-    --wfo: #ea580c;
-    --wfo-soft: #ffedd5;
-    --wfo-text: #c2410c;
-    --leave: #d97706;
-    --leave-soft: #fef3c7;
-    --leave-text: #b45309;
+    --wfo: #dc2626;
+    --wfo-soft: #fee2e2;
+    --wfo-text: #b91c1c;
+    --leave: #eab308;
+    --leave-soft: #fef9c3;
+    --leave-text: #a16207;
     --holiday: #059669;
     --holiday-soft: #d1fae5;
     --holiday-text: #047857;
@@ -77,6 +77,22 @@
     padding: 20px 22px 18px;
     position: relative;
   }
+
+  .visitor-badge {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.14);
+    padding: 4px 9px;
+    border-radius: 999px;
+  }
+  .visitor-badge svg { width: 13px; height: 13px; }
 
   .badge-header::after {
     content: "";
@@ -147,17 +163,16 @@
 
   .reset {
     background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
+    border: 1px solid var(--wfo);
+    color: var(--wfo-text);
     font-size: 12px;
     font-weight: 500;
     padding: 6px 12px;
     border-radius: 999px;
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
   }
   .reset:hover {
-    border-color: var(--wfo);
     color: var(--wfo);
   }
 
@@ -382,6 +397,13 @@
 <div class="card">
 
   <div class="badge-header">
+    <div class="visitor-badge" title="Unique visitors, all time">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span id="visitorCount">···</span>
+    </div>
     <div class="brand">WFO Tracker</div>
     <div class="brand-sub">Office attendance, at a glance</div>
     <div class="month-row">
@@ -533,7 +555,7 @@ function generateCalendar() {
   const lastDay = new Date(year, month + 1, 0).getDate();
 
   for (let d = 1; d <= lastDay; d++) {
-    const date = new Date(year, month, d); 
+    const date = new Date(year, month, d);
     const dayOfWeek = date.getDay();
 
     let existing = saved.find(x => new Date(x.date).getDate() === d);
@@ -641,6 +663,28 @@ function calculate() {
 }
 
 generateCalendar();
+
+// ---------- UNIQUE VISITOR COUNT (via Tally API) ----------
+// ⚠️ IMPORTANT: change "yourname" below to something unique to you
+// (e.g. your GitHub username) before deploying, so your counter
+// doesn't collide with someone else's on the shared public instance.
+const VISITOR_NAMESPACE = "wfo-tracker@yourname";
+const VISITOR_RESOURCE = "site";
+
+async function loadVisitorCount() {
+  const el = document.getElementById("visitorCount");
+  try {
+    const res = await fetch(
+      `https://tally.yuki.sh/hits/${VISITOR_NAMESPACE}/${VISITOR_RESOURCE}`
+    );
+    if (!res.ok) throw new Error("request failed");
+    const data = await res.json(); // { visit: number, visitor: number }
+    el.innerText = data.visitor.toLocaleString();
+  } catch (e) {
+    el.innerText = "—";
+  }
+}
+loadVisitorCount();
 </script>
 
 </body>
