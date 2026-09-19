@@ -1,202 +1,464 @@
 <!DOCTYPE html>
-
 <html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- PWA -->
-
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f46e5">
+<meta name="theme-color" content="#1f2430">
 
 <title>WFO Tracker</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-body {
-  font-family: 'Segoe UI', sans-serif;
-  background: #f5f7fb;
-  padding: 10px;
-  text-align: center;
-}
+  :root {
+    --ink: #1e293b;
+    --ink-soft: #334155;
+    --paper: #f8fafc;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --muted: #64748b;
 
-.card {
-  background: white;
-  width: 100%;
-  max-width: 500px;
-  margin: auto;
-  padding: 12px 16px; /* 👈 THIS FIXES SIDE CUT */
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-  box-sizing: border-box;
-}
+    --header-start: #0ea5e9;
+    --header-end: #2563eb;
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+    --wfh: #2563eb;
+    --wfh-soft: #dbeafe;
+    --wfh-text: #1d4ed8;
+    --wfo: #ea580c;
+    --wfo-soft: #ffedd5;
+    --wfo-text: #c2410c;
+    --leave: #d97706;
+    --leave-soft: #fef3c7;
+    --leave-text: #b45309;
+    --holiday: #059669;
+    --holiday-soft: #d1fae5;
+    --holiday-text: #047857;
+    --weekend-bg: #eef1f5;
+    --weekend-text: #a3aebc;
 
-button {
-  background: #4f46e5;
-  color: white;
-  border: none;
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+  }
 
-.reset {
-  margin-top: 10px;
-  background: #ef4444;
-}
+  * { box-sizing: border-box; }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px; /* 👈 slightly bigger */
-  margin-top: 12px;
-}
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background:
+      radial-gradient(circle at 15% 0%, #f0f7ff 0%, var(--paper) 55%);
+    min-height: 100vh;
+    padding: 28px 14px;
+    display: flex;
+    justify-content: center;
+    color: var(--ink);
+  }
 
-.label {
-  font-weight: bold;
-  color: #666;
-}
+  .card {
+    background: var(--card);
+    width: 100%;
+    max-width: 430px;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 45px -18px rgba(31, 36, 48, 0.28);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
 
-.day {
-  padding: 10px 0; /* 👈 was bigger */
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-}
+  /* ---------- HEADER / BADGE STRIP ---------- */
+  .badge-header {
+    background: linear-gradient(155deg, var(--header-start) 0%, var(--header-end) 100%);
+    color: #fff;
+    padding: 20px 22px 18px;
+    position: relative;
+  }
 
-/* COLORS */
-.wfh { background: #3b82f6; color: white; }
-.wfo { background: #ef4444; color: white; }
-.leave { background: #facc15; color: black; }
-.holiday { background: #22c55e; color: white; }
-.weekend { background: #e5e7eb; color: #9ca3af; }
+  .badge-header::after {
+    content: "";
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 0;
+    height: 1px;
+    background: rgba(255,255,255,0.12);
+  }
 
-/* LEGEND */
-.legend {
-  margin-top: 10px;
-}
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 5px;
-}
-.box {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-}
+  .brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 21px;
+    letter-spacing: 0.2px;
+  }
 
-/* PROGRESS */
-.progress-container {
-  margin-top: 15px;
-}
-.progress-bar {
-  height: 12px;
-  background: #e5e7eb;
-  border-radius: 10px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  background: #ef4444;
-  width: 0%;
-  transition: 0.3s;
-}
+  .brand-sub {
+    font-size: 12.5px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 2px;
+  }
 
-/* MESSAGE */
-.message {
-  margin-top: 10px;
-  font-weight: bold;
-}
+  .month-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+  }
 
-/* MODAL */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: none;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0,0,0,0.5);
-}
+  .nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.2); }
+  .nav-btn:active { transform: scale(0.9); }
 
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-}
+  #month {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin: 0;
+    min-width: 150px;
+    text-align: center;
+  }
 
-.modal button {
-  margin: 5px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: black;
-  font-weight: 600;
-}
+  /* ---------- BODY ---------- */
+  .body {
+    padding: 20px 22px 24px;
+  }
+
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .reset {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .reset:hover {
+    border-color: var(--wfo);
+    color: var(--wfo);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    transition: opacity 0.18s ease;
+  }
+  .grid.fading { opacity: 0; }
+
+  .label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    padding-bottom: 4px;
+  }
+
+  .day {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .day:not(.weekend):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -6px rgba(31,36,48,0.35);
+  }
+  .day.weekend { cursor: default; }
+
+  .wfh     { background: var(--wfh);     color: #fff; }
+  .wfo     { background: var(--wfo);     color: #fff; }
+  .leave   { background: var(--leave);   color: #fff; }
+  .holiday { background: var(--holiday); color: #fff; }
+  .weekend { background: var(--weekend-bg); color: var(--weekend-text); }
+
+  @keyframes stampIn {
+    0%   { transform: scale(1.4) rotate(-8deg); opacity: 0.3; }
+    55%  { transform: scale(0.94) rotate(3deg);  opacity: 1; }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .day.stamp { animation: stampIn 0.38s cubic-bezier(.25,.8,.35,1.1); }
+
+  /* ---------- LEGEND ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 16px;
+  }
+  .legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .box {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ---------- PROGRESS ---------- */
+  .progress-container { margin-top: 20px; }
+
+  .progress-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .progress-heading b {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  #progressText {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .progress-bar {
+    height: 10px;
+    background: #ece7d8;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #38bdf8, var(--wfh));
+    transition: width 0.5s cubic-bezier(.25,.8,.35,1);
+  }
+  .progress-fill.done {
+    background: linear-gradient(90deg, #34d399, var(--holiday));
+  }
+
+  .message {
+    margin-top: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+  .message.done { color: var(--holiday); }
+
+  /* ---------- STATS LEDGER ---------- */
+  .stats {
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 12px;
+  }
+  .stat-item { display: flex; flex-direction: column; }
+  .stat-label {
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin-top: 1px;
+  }
+
+  /* ---------- MODAL ---------- */
+  .modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(20, 22, 28, 0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
+    padding: 20px;
+  }
+  .modal.open { opacity: 1; visibility: visible; }
+
+  .modal-content {
+    background: var(--card);
+    padding: 22px;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 300px;
+    position: relative;
+    transform: translateY(14px) scale(0.96);
+    transition: transform 0.22s cubic-bezier(.25,.8,.35,1.1);
+  }
+  .modal.open .modal-content { transform: translateY(0) scale(1); }
+
+  .modal-content p {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .modal-close:hover { background: #efeadb; color: var(--ink); }
+
+  .status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .status-btn {
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 8px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .status-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .status-btn:active { transform: scale(0.96); }
+
+  .status-btn.wfh     { background: var(--wfh-soft);     color: var(--wfh-text); }
+  .status-btn.wfo     { background: var(--wfo-soft);     color: var(--wfo-text); }
+  .status-btn.leave   { background: var(--leave-soft);   color: var(--leave-text); }
+  .status-btn.holiday { background: var(--holiday-soft); color: var(--holiday-text); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 </style>
-
 </head>
 
 <body>
 
 <div class="card">
 
-  <div class="header">
-    <button onclick="changeMonth(-1)">◀</button>
-    <h3 id="month"></h3>
-    <button onclick="changeMonth(1)">▶</button>
-  </div>
-
-<button class="reset" onclick="resetMonth()">Reset Month</button>
-
-  <div id="calendar"></div>
-
-  <div class="legend">
-    <div class="legend-item"><div class="box wfh"></div> WFH</div>
-    <div class="legend-item"><div class="box wfo"></div> WFO</div>
-    <div class="legend-item"><div class="box leave"></div> Leave</div>
-    <div class="legend-item"><div class="box holiday"></div> Holiday</div>
-    <div class="legend-item"><div class="box weekend"></div> Weekend</div>
-  </div>
-
-  <div class="progress-container">
-    <p><b>Progress:</b> <span id="progressText"></span></p>
-    <div class="progress-bar">
-      <div class="progress-fill" id="progressFill"></div>
+  <div class="badge-header">
+    <div class="brand">WFO Tracker</div>
+    <div class="brand-sub">Office attendance, at a glance</div>
+    <div class="month-row">
+      <button class="nav-btn" onclick="changeMonth(-1)" aria-label="Previous month">◀</button>
+      <h3 id="month"></h3>
+      <button class="nav-btn" onclick="changeMonth(1)" aria-label="Next month">▶</button>
     </div>
   </div>
 
-  <div class="message" id="message"></div>
+  <div class="body">
 
-  <div>
-    <p>Total Working Days: <span id="total"></span></p>
-    <p>Holidays: <span id="holidays"></span></p>
-    <p>Leaves: <span id="leaves"></span></p>
-    <p>Required WFO (max 12): <span id="required"></span></p>
-    <p>Done WFO: <span id="done"></span></p>
-    <p>Remaining WFO: <span id="remaining"></span></p>
+    <div class="toolbar">
+      <button class="reset" onclick="resetMonth()">Reset month</button>
+    </div>
+
+    <div id="calendar"></div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="box wfh"></div>WFH</div>
+      <div class="legend-item"><div class="box wfo"></div>WFO</div>
+      <div class="legend-item"><div class="box leave"></div>Leave</div>
+      <div class="legend-item"><div class="box holiday"></div>Holiday</div>
+      <div class="legend-item"><div class="box weekend"></div>Weekend</div>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-heading">
+        <b>Progress</b>
+        <span id="progressText"></span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="message" id="message"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-label">Total working days</span>
+        <span class="stat-value" id="total"></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Holidays</span>
+        <span class="stat-value" id="holidays"></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Leaves</span>
+        <span class="stat-value" id="leaves"></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Required WFO (max 12)</span>
+        <span class="stat-value" id="required"></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Done WFO</span>
+        <span class="stat-value" id="done"></span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Remaining WFO</span>
+        <span class="stat-value" id="remaining"></span>
+      </div>
+    </div>
+
   </div>
-
 </div>
 
 <!-- MODAL -->
-
-<div class="modal" id="modal">
+<div class="modal" id="modal" onclick="if(event.target===this) closeModal()">
   <div class="modal-content">
-    <p>Select Status</p>
-    <button class="wfh" onclick="setStatus('wfh')">WFH</button>
-    <button class="wfo" onclick="setStatus('wfo')">WFO</button>
-    <button class="leave" onclick="setStatus('leave')">Leave</button>
-    <button class="holiday" onclick="setStatus('holiday')">Holiday</button>
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">✕</button>
+    <p>Select status</p>
+    <div class="status-grid">
+      <button class="status-btn wfh" onclick="setStatus('wfh')">WFH</button>
+      <button class="status-btn wfo" onclick="setStatus('wfo')">WFO</button>
+      <button class="status-btn leave" onclick="setStatus('leave')">Leave</button>
+      <button class="status-btn holiday" onclick="setStatus('holiday')">Holiday</button>
+    </div>
   </div>
 </div>
 
@@ -209,6 +471,7 @@ if ('serviceWorker' in navigator) {
 let currentDate = new Date();
 let days = [];
 let selectedDay = null;
+let lastChangedDateStr = null;
 
 function getKey(year, month) {
   return `calendar-${year}-${month}`;
@@ -224,8 +487,13 @@ function loadData(year, month) {
 }
 
 function changeMonth(offset) {
-  currentDate.setMonth(currentDate.getMonth() + offset);
-  generateCalendar();
+  const calendar = document.getElementById("calendar");
+  calendar.classList.add("fading");
+  setTimeout(() => {
+    currentDate.setMonth(currentDate.getMonth() + offset);
+    generateCalendar();
+    calendar.classList.remove("fading");
+  }, 140);
 }
 
 function resetMonth() {
@@ -281,14 +549,22 @@ function generateCalendar() {
     div.innerText = d;
     div.className = "day " + obj.status;
 
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    if (isWeekend) {
       div.classList.add("weekend");
+    } else {
+      div.onclick = () => {
+        selectedDay = obj;
+        document.getElementById("modal").classList.add("open");
+      };
     }
 
-    div.onclick = () => {
-      selectedDay = obj;
-      document.getElementById("modal").style.display = "flex";
-    };
+    if (lastChangedDateStr && date.toDateString() === lastChangedDateStr) {
+      div.classList.add("stamp");
+      div.addEventListener("animationend", () => div.classList.remove("stamp"), { once: true });
+      lastChangedDateStr = null;
+    }
 
     grid.appendChild(div);
   }
@@ -297,9 +573,15 @@ function generateCalendar() {
   calculate();
 }
 
+function closeModal() {
+  document.getElementById("modal").classList.remove("open");
+  selectedDay = null;
+}
+
 function setStatus(status) {
   selectedDay.status = status;
-  document.getElementById("modal").style.display = "none";
+  lastChangedDateStr = new Date(selectedDay.date).toDateString();
+  document.getElementById("modal").classList.remove("open");
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -332,23 +614,30 @@ function calculate() {
   document.getElementById("remaining").innerText = remaining;
 
   // progress
-  let percent = required === 0 ? 0 : (wfo / required) * 100;
-  document.getElementById("progressFill").style.width = percent + "%";
+  let percent = required === 0 ? 0 : Math.min((wfo / required) * 100, 100);
+  const fill = document.getElementById("progressFill");
+  fill.style.width = percent + "%";
+  fill.classList.toggle("done", remaining === 0 && required > 0);
   document.getElementById("progressText").innerText = wfo + " / " + required;
 
   // message
   let msg = "";
+  const msgEl = document.getElementById("message");
   if (required === 0) {
     msg = "No WFO required this month";
+    msgEl.classList.remove("done");
   } else if (remaining === 0) {
-    msg = "Target achieved 🎉";
+    msg = "Target achieved";
+    msgEl.classList.add("done");
   } else if (remaining === 1) {
-    msg = "Only 1 more day to go 🔥";
+    msg = "Only 1 more day to go";
+    msgEl.classList.remove("done");
   } else {
     msg = "You need " + remaining + " more WFO days";
+    msgEl.classList.remove("done");
   }
 
-  document.getElementById("message").innerText = msg;
+  msgEl.innerText = msg;
 }
 
 generateCalendar();
